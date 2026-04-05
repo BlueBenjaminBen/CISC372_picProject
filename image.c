@@ -3,6 +3,7 @@
 #include <time.h>
 #include <string.h>
 #include "image.h"
+#include <pthread.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -20,6 +21,12 @@ Matrix algorithms[]={
     {{-2,-1,0},{-1,1,1},{0,1,2}},
     {{0,0,0},{0,1,0},{0,0,0}}
 };
+
+//Global shared data for threads
+Image* global_src;
+Image* global_dest;
+Matrix global_alg;
+int global_rows_per_thread;
 
 
 //getPixelValue - Computes the value of a specific pixel on a specific channel using the selected convolution kernel
@@ -51,20 +58,43 @@ uint8_t getPixelValue(Image* srcImage,int x,int y,int bit,Matrix algorithm){
     return result;
 }
 
+//Thread worker function
+void* thread_convolute(void* arg){
+    int thread_id = *(int*)arg;
+
+    int start_row = thread_id * global_rows_per_thread;
+    int end_row = (thread_id == NUM_THREADS - 1) ? global_src->height : (thread_id + 1) * global_rows_per_thread;
+    for (int row = start_row; row<end_row; row++){
+        for (int pix=0; pix<global_src->width; pix++){
+            for (int bit=0; bit<global_src->bpp; bit++){
+                global_dest->data[Index(pix,row,global_src->width,bit,global_src->bpp)]=getPixelValue(global_src,pix,row,bit,global_alg);
+            }
+        }
+    }
+    return NULL;
+}
+
 //convolute:  Applies a kernel matrix to an image
 //Parameters: srcImage: The image being convoluted
 //            destImage: A pointer to a  pre-allocated (including space for the pixel array) structure to receive the convoluted image.  It should be the same size as srcImage
 //            algorithm: The kernel matrix to use for the convolution
 //Returns: Nothing
 void convolute(Image* srcImage,Image* destImage,Matrix algorithm){
-    int row,pix,bit,span;
-    span=srcImage->bpp*srcImage->bpp;
-    for (row=0;row<srcImage->height;row++){
-        for (pix=0;pix<srcImage->width;pix++){
-            for (bit=0;bit<srcImage->bpp;bit++){
-                destImage->data[Index(pix,row,srcImage->width,bit,srcImage->bpp)]=getPixelValue(srcImage,pix,row,bit,algorithm);
-            }
-        }
+    pthread_t threads[NUM_THREADS];
+    int thread_ids[NUM_THREADS];
+    
+    global_src = srcImage;
+    global_dest = destImage;
+    global_alg = algorithm;
+    global_rows_per_thread = srcImage->height / NUM_THREADS;
+
+    for (int i = 0; i < NUM_THREADS; i++){
+        thread_ids[i] = i;
+        pthread_create(&threads[i], NULL, thread_convolute, &thread_ids[i]);
+    }
+
+    for (int i = 0; i < NUM_THREADS; i++){
+        pthread_join(threads[i], NULL);
     }
 }
 
