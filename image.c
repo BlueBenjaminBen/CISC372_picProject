@@ -10,7 +10,7 @@
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
-
+#define NUM_THREADS 4
 //An array of kernel matrices to be used for image convolution.  
 //The indexes of these match the enumeration from the header file. ie. algorithms[BLUR] returns the kernel corresponding to a box blur.
 Matrix algorithms[]={
@@ -64,12 +64,13 @@ void* thread_convolute(void* arg){
 
     int start_row = thread_id * global_rows_per_thread;
     int end_row = (thread_id == NUM_THREADS - 1) ? global_src->height : (thread_id + 1) * global_rows_per_thread;
+    printf("Thread %d processing rows %d to %d \n", thread_id, start_row, end_row);
     for (int row = start_row; row<end_row; row++){
         for (int pix=0; pix<global_src->width; pix++){
             for (int bit=0; bit<global_src->bpp; bit++){
-                global_dest->data[Index(pix,row,global_src->width,bit,global_src->bpp)]=getPixelValue(global_src,pix,row,bit,global_alg);
+                global_dest->data[Index(pix,row,global_src->width,bit,global_src->bpp)]=getPixelValue(global_src,pix,row,bit,global_alg);     
             }
-        }
+        } 
     }
     return NULL;
 }
@@ -85,9 +86,8 @@ void convolute(Image* srcImage,Image* destImage,Matrix algorithm){
     
     global_src = srcImage;
     global_dest = destImage;
-    global_alg = algorithm;
+    memcpy(global_alg, algorithm, sizeof(Matrix));
     global_rows_per_thread = srcImage->height / NUM_THREADS;
-
     for (int i = 0; i < NUM_THREADS; i++){
         thread_ids[i] = i;
         pthread_create(&threads[i], NULL, thread_convolute, &thread_ids[i]);
