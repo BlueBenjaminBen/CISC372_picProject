@@ -62,9 +62,9 @@ void convolute(Image* srcImage,Image* destImage,Matrix algorithm, int num_thread
     omp_set_num_threads(num_threads);
 #   pragma omp parallel 
     {
-        printf("Thread %d running\n", omp_get_thread_num());
+    printf("Thread %d running\n", omp_get_thread_num());
     }
-#   pragma omp parallel for 
+#   pragma omp parallel for private(pix, bit) 
     for (row=0;row<srcImage->height;row++){
         for (pix=0;pix<srcImage->width;pix++){
             for (bit=0;bit<srcImage->bpp;bit++){
