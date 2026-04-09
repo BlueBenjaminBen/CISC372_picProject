@@ -1,0 +1,17 @@
+Script started on Thu Apr  9 15:46:56 2026
+]0;benle@r1n08.darwin:~/CISC372_picProject[?1034h[benle@r1n08 CISC372_picProject]$ srun image       ./image pic1.jpg edge 4
+Thread 0 processing rows 0 to 756 
+Thread 1 processing rows 756 to 1512 
+Thread 2 processing rows 1512 to 2268 
+Thread 3 processing rows 2268 to 3024 
+Took 6 seconds
+]0;benle@r1n08.darwin:~/CISC372_picProject[benle@r1n08 CISC372_picProject]$ srun ./image pic1.            /openmp pic1.jpg edge 4
+Thread 2 running
+Thread 3 running
+Thread 1 running
+Thread 0 running
+Took 6 seconds
+]0;benle@r1n08.darwin:~/CISC372_picProject[benle@r1n08 CISC372_picProject]$ exit
+exit
+
+Script done on Thu Apr  9 15:47:57 2026
